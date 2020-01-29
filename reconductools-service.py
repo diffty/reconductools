@@ -21,22 +21,40 @@ def vodcutter(spreadsheet_id, sheet_id):
 
     creds = cutter.auth()
     spreadsheet_service = cutter.get_spreadsheet_service(creds)
-    sheet_name = cutter.get_sheet_name_by_id(spreadsheet_service, spreadsheet_id, sheet_id) 
-    vod_target_filename = sheet_name + ".mp4"
+
+    vod_provider = config.get("vod_provider", None)
+    vod_path_cutted = config.get("vod_path_cutted", None)
+
+
+    vod_src_address = cutter.get_vod_source_address(creds, spreadsheet_id, sheet_id)
     
-    if config["vod_provider"] == "gdrive":
-        if not os.path.exists(vod_target_filename):
+    if vod_provider == "gdrive":
+        sheet_name = cutter.get_sheet_name_by_id(spreadsheet_service, spreadsheet_id, sheet_id) 
+        vod_filename = sheet_name + ".mp4"
+        vod_full_path = "%s/%s" % (vod_path_full, vod_filename)
+
+        if not os.path.exists(vod_filename):
             print("<i> VOD not existing, downloading")
-            gdrive_link = cutter.get_gdrive_link(creds, spreadsheet_id, sheet_id)
+
+            gdrive_link = vod_src_address
             video_path = cutter.download(gdrive_link)
-            os.rename(video_path, vod_target_filename)
+
+            os.rename(video_path, vod_full_path)
+
         else:
             print("<i> VOD already exists, skipping download!")
 
-    elif config["vod_provider"] == "file":
-        pass
+    elif vod_provider == "file":
+        vod_path_full = config.get("vod_path_full", None)
 
-    cutter.main(vod_target_filename, spreadsheet_id, sheet_id)
+        vod_filename = vod_src_address
+
+        vod_full_path = "%s/%s" % (vod_path_full, vod_filename)
+
+    else:
+        raise Exception("<!!> Unknown VOD provider '" + vod_provider + "'")
+
+    cutter.main(vod_full_path, vod_path_cutted, spreadsheet_id, sheet_id)
     
     return ""
 

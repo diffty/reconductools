@@ -18,8 +18,14 @@ def auth():
     # Auth
     creds = None
 
-    if os.path.exists("creds/token.pickle"):
-        with open("creds/token.pickle", "rb") as token:
+    token_path = "creds/token.pickle"
+    creds_path = "creds/credentials.json"
+
+    if not os.path.exists(creds_path):
+        raise Exception("<!!> Creds JSON cannot be found in %s" % creds_path)
+
+    if os.path.exists(token_path):
+        with open(token_path, "rb") as token:
             creds = pickle.load(token)
 
     if not creds or not creds.valid:
@@ -32,7 +38,7 @@ def auth():
 
             creds = flow.run_console()
         
-        with open("creds/token.pickle", "wb") as token:
+        with open(token_path, "wb") as token:
             pickle.dump(creds, token)
 
     return creds
@@ -68,7 +74,7 @@ def get_info(creds, spreadsheet_id, sheet_id):
     return spreadsheet.get("values", [])
 
 
-def get_gdrive_link(creds, spreadsheet_id, sheet_id):
+def get_vod_source_address(creds, spreadsheet_id, sheet_id):
     spreadsheet_service = get_spreadsheet_service(creds)
 
     spreadsheet = spreadsheet_service.get(
@@ -98,7 +104,9 @@ def make_vod_name(vod_name, title, streamer_name, date, time):
 
 def cut_video(input_video, tc_start, tc_end, output_video):
     cmd = 'ffmpeg -i "%s" -ss "%s" -to "%s" -c:v copy -c:a copy "%s"' % (input_video, tc_start, tc_end, output_video)
+    print("<i> Executing command %s" % cmd)
     os.system(cmd)
+    print()
 
 
 def download(gdrive_file_url):
@@ -113,12 +121,15 @@ def download(gdrive_file_url):
     return output_file
 
 
-def main(input_video, spreadsheet_id, sheet_id):
+def main(input_video, output_path, spreadsheet_id, sheet_id):
     creds = auth()
     values = get_info(creds, spreadsheet_id, sheet_id)
 
     spreadsheet_service = get_spreadsheet_service(creds)
     sheet_name = get_sheet_name_by_id(spreadsheet_service, spreadsheet_id, sheet_id)
+
+    abs_output_path = os.path.abspath(output_path)
+    os.makedirs(abs_output_path)
     
     for v in values:
         tc_start = v[0]
@@ -136,9 +147,9 @@ def main(input_video, spreadsheet_id, sheet_id):
             time,
         )
 
-        output_video = vod_name + ".mp4"
+        output_video_full_path = "%s/%s.%s" % (abs_output_path, vod_name, "mp4")
 
-        cut_video(input_video, tc_start, tc_end, output_video)
+        cut_video(input_video, tc_start, tc_end, output_video_full_path)
 
 
 if __name__ == "__main__":
