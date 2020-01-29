@@ -3,7 +3,6 @@ import os
 import json
 
 import vodcutter.vodcutter as cutter
-import gdown
 
 
 app = Flask(__name__)
