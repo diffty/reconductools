@@ -129,7 +129,9 @@ def main(input_video, output_path, spreadsheet_id, sheet_id):
     sheet_name = get_sheet_name_by_id(spreadsheet_service, spreadsheet_id, sheet_id)
 
     abs_output_path = os.path.abspath(output_path)
-    os.makedirs(abs_output_path)
+
+    if not os.path.exists(abs_output_path):
+        os.makedirs(abs_output_path)
     
     for v in values:
         tc_start = v[0]
